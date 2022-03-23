@@ -381,6 +381,9 @@ class _homesState extends State<homes> {
                     Container(
                       margin: EdgeInsets.only(top: 473, left: 30),
                       child: TextField(
+                        onChanged: (t) {
+                          description = t;
+                        },
                         maxLines: 5,
                         decoration: InputDecoration(
                             hintText: ("Write your activity here ..."),
