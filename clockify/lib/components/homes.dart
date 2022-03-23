@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:clockify/components/bghome.dart';
 import 'package:clockify/components/savedItem.dart';
 import 'package:clockify/constants.dart';
+import 'package:clockify/models/ActivityModel.dart';
+import 'package:clockify/screens/detail_activity.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:grouped_list/grouped_list.dart';
 import 'package:intl/intl.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
+import 'package:flutter_swipe_action_cell/flutter_swipe_action_cell.dart';
+import '../models/database.dart';
 
 class homes extends StatefulWidget {
   homes({Key? key}) : super(key: key);
@@ -16,10 +22,10 @@ class homes extends StatefulWidget {
 }
 
 class _homesState extends State<homes> {
-
   bool _isVisible = true;
   var _click = true;
-  
+  List<ActivityModel> activityList = [];
+
   //stopwatch
   final StopWatchTimer _stopWatchTimer = StopWatchTimer();
   int seconds = 0, minutes = 0, hours = 0;
@@ -32,6 +38,7 @@ class _homesState extends State<homes> {
   //date
   String date = "-";
   String datee = "-";
+  String description = '';
 
   //time
   String time = "-";
@@ -40,13 +47,12 @@ class _homesState extends State<homes> {
   //location
   String latitudeData = "";
 
-
   //dropdown
-  final items = [ "Latest Date", "Nearby"];
+  final items = ["Latest Date", "Nearby"];
   String? value;
 
   //stop
-  void stop(){
+  void stop() {
     stopped = true;
     saved = true;
     timer!.cancel();
@@ -56,9 +62,9 @@ class _homesState extends State<homes> {
       gettimee();
     });
   }
-  
+
   //reset
-  void reset(){
+  void reset() {
     timer!.cancel();
     setState(() {
       seconds = 0;
@@ -77,13 +83,13 @@ class _homesState extends State<homes> {
 
       _isVisible = !_isVisible;
     });
-    if(_isVisible){
+    if (_isVisible) {
       _click = true;
     }
   }
 
   //delete
-  void delete(){
+  void delete() {
     timer!.cancel();
     setState(() {
       seconds = 0;
@@ -102,34 +108,47 @@ class _homesState extends State<homes> {
 
       _isVisible = !_isVisible;
     });
-    if(_isVisible){
+    if (_isVisible) {
       _click = true;
     }
   }
 
   //save
-  void save(){
+  void save() async {
     saved = true;
+    final database =
+        await $FloorAppDatabase.databaseBuilder('app_database.db').build();
 
-    setState(() {
-   
-      
-    });
+    final dao = database.activityDao;
+    final activity = ActivityModel(
+        seconds: seconds,
+        minutes: minutes,
+        hours: hours,
+        startTime: time,
+        endTime: timee,
+        description: description,
+        location: latitudeData,
+        date: date);
 
+    await dao.insertPerson(activity);
+    activityList = await dao.findAllActivity();
+    log('tania');
+
+    setState(() {});
   }
 
   //start
-  void start(){
+  void start() {
     started = true;
     stopped = false;
     saved = false;
-    timer = Timer.periodic(Duration(seconds: 1), (timer){
+    timer = Timer.periodic(Duration(seconds: 1), (timer) {
       int localSec = seconds + 1;
       int localMin = minutes;
       int localHou = hours;
 
-      if(localSec > 59){
-        if(localMin > 59){
+      if (localSec > 59) {
+        if (localMin > 59) {
           localHou++;
           localMin = 0;
         } else {
@@ -151,34 +170,45 @@ class _homesState extends State<homes> {
     gettime();
   }
 
-  void hide(){
+  void hide() {
     setState(() {
       _isVisible = !_isVisible;
     });
   }
 
   //getdate
-  void getdate(){
+  void getdate() {
     date = DateFormat('d MMM y').format(DateTime.now());
   }
-  void getdatee(){
+
+  void getdatee() {
     datee = DateFormat('d MMM y').format(DateTime.now());
   }
 
   //gettime
-  void gettime(){
+  void gettime() {
     time = DateFormat('Hms').format(DateTime.now());
   }
-  void gettimee(){
+
+  void gettimee() {
     timee = DateFormat('Hms').format(DateTime.now());
   }
-
 
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    _stopWatchTimer.dispose(); 
+    _stopWatchTimer.dispose();
+  }
+
+  _fetchActivity() async {
+    final database =
+        await $FloorAppDatabase.databaseBuilder('app_database.db').build();
+    final dao = database.activityDao;
+    activityList = await dao.findAllActivity();
+    setState(() {
+      
+    });
   }
 
   @override
@@ -186,21 +216,18 @@ class _homesState extends State<homes> {
     // TODO: implement initState
     super.initState();
     getCurrentLocation();
+    _fetchActivity();
   }
-  
 
-
-  getCurrentLocation () async {
+  getCurrentLocation() async {
     LocationPermission permission = await Geolocator.requestPermission();
-    final position = await Geolocator
-    .getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high);
+    final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
 
-      setState(() {
-        latitudeData = "${position.latitude}"; 
-      });
+    setState(() {
+      latitudeData = "${position.latitude}";
+    });
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -219,82 +246,70 @@ class _homesState extends State<homes> {
 
   Widget _tabSection(BuildContext context) {
     return DefaultTabController(
-      length: 2, 
-      child: Column(
-        children: <Widget>[
-          Container(
-            child: TabBar(
-              indicator: UnderlineTabIndicator(
-                borderSide: BorderSide(
-                  color: textColor,
-                  width: 2
+        length: 2,
+        child: Column(
+          children: <Widget>[
+            Container(
+              child: TabBar(
+                  indicator: UnderlineTabIndicator(
+                    borderSide: BorderSide(color: textColor, width: 2),
+                    insets: EdgeInsets.symmetric(horizontal: 90),
                   ),
-                insets: EdgeInsets.symmetric(horizontal: 90),
-              ),
-              indicatorColor: textColor,
-              tabs: [
-                Tab(
-                  child : Text(
-                    "TIMER",
-                    style: TextStyle(
-                      color: textColor, 
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16
-                      ),
-                    )
-                  ),
-                Tab(
-                  child : Text(
-                    "ACTIVITY",
-                    style: TextStyle(
-                      color: textColor, 
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16
-                      ),
-                    )
-                  ),
-              ]),
-          ),
-
-          Container(
-            // alignment: Alignment.center,
-            height: 700,
-            child: TabBarView(
-              children: [ 
+                  indicatorColor: textColor,
+                  tabs: [
+                    Tab(
+                        child: Text(
+                      "TIMER",
+                      style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    )),
+                    Tab(
+                        child: Text(
+                      "ACTIVITY",
+                      style: TextStyle(
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    )),
+                  ]),
+            ),
+            Container(
+              // alignment: Alignment.center,
+              height: 700,
+              child: TabBarView(children: [
                 Stack(
                   children: [
                     Container(
                       alignment: Alignment.center,
                       margin: EdgeInsets.only(bottom: 450),
-                      child: Text("$digitHou   :  $digitMin  :  $digitSec",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
+                      child: Text(
+                        "$digitHou   :  $digitMin  :  $digitSec",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 250, left: 75),
-                      child: Text("Start Time",
-                      style: TextStyle(color: Colors.white,
-                      fontSize: 14),
+                      child: Text(
+                        "Start Time",
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 290, left: 70),
                       child: Text(
                         "$time",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold
-                        ),
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 330, left: 72),
                       child: Text(
@@ -305,27 +320,23 @@ class _homesState extends State<homes> {
                         ),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 250, left: 295),
-                      child: Text("End Time",
-                      style: TextStyle(color: Colors.white,
-                      fontSize: 14),
+                      child: Text(
+                        "End Time",
+                        style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 290, left: 280),
                       child: Text(
                         "$timee",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold
-                        ),
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
-
                     Container(
                       margin: EdgeInsets.only(top: 330, left: 282),
                       child: Text(
@@ -336,60 +347,51 @@ class _homesState extends State<homes> {
                         ),
                       ),
                     ),
-
                     Container(
                       width: 300,
                       height: 48,
                       margin: EdgeInsets.only(top: 400, left: 65),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: locationButton
-                      ),
+                          borderRadius: BorderRadius.circular(12),
+                          color: locationButton),
                       child: Stack(
                         // mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
                             margin: EdgeInsets.only(left: 32, top: 12),
-                            child : Image.asset(
-                            "assets/icons/nav.png",
-                            height: 24,
-                            width: 16,
+                            child: Image.asset(
+                              "assets/icons/nav.png",
+                              height: 24,
+                              width: 16,
                             ),
                           ),
                           Container(
                             margin: EdgeInsets.only(top: 17, left: 120),
                             child: Text(
-                            latitudeData,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
+                              latitudeData,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
                             ),
-                          ), 
                           ),
                         ],
                       ),
                     ),
-   
                     Container(
-                      width: 370,
                       margin: EdgeInsets.only(top: 473, left: 30),
                       child: TextField(
                         maxLines: 5,
                         decoration: InputDecoration(
-                          hintText: ("Write your activity here ..."),
-                          hintStyle: TextStyle(
-                            color: lineColor, 
-                            fontSize: 14
-                            ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)
-                          ),
-                          fillColor: Colors.white,
-                          filled: true
-                        ),
+                            hintText: ("Write your activity here ..."),
+                            hintStyle:
+                                TextStyle(color: lineColor, fontSize: 14),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            fillColor: Colors.white,
+                            filled: true),
                       ),
                     ),
-                    
                     Stack(
                       children: [
                         Container(
@@ -397,19 +399,19 @@ class _homesState extends State<homes> {
                           height: 48,
                           margin: EdgeInsets.only(top: 635, left: 225),
                           child: ElevatedButton(
-                            onPressed: (){
-                              (!stopped)? reset() : delete();
+                            onPressed: () {
+                              (!stopped) ? reset() : delete();
                               // reset();
                             },
-                              child: Text((!stopped) ? "RESET" : "DELETE", 
+                            child: Text(
+                              (!stopped) ? "RESET" : "DELETE",
                               // child: Text("RESET",
                               style: TextStyle(
-                                color: lineColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
+                                  color: lineColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
                               shadowColor: Colors.black,
                               primary: Colors.white,
                               shape: RoundedRectangleBorder(
@@ -418,26 +420,25 @@ class _homesState extends State<homes> {
                             ),
                           ),
                         ),
-                        
                         Container(
                           width: 175,
                           height: 48,
                           margin: EdgeInsets.only(top: 635, left: 30),
                           child: ElevatedButton(
                             onPressed: () {
-                                if(_click){
-                                  _click = false;
-                                  stop();
-                                }
-                                (!stopped)? stop() : save();
-                              },
-                              child: Text((!stopped) ? "STOP" : "SAVE", 
-                            // child: Text("STOP",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold
-                              ),
+                              if (_click) {
+                                _click = false;
+                                stop();
+                              }
+                              (!stopped) ? stop() : save();
+                            },
+                            child: Text(
+                              (!stopped) ? "STOP" : "SAVE",
+                              // child: Text("STOP",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
                               shadowColor: Colors.black,
@@ -448,7 +449,6 @@ class _homesState extends State<homes> {
                             ),
                           ),
                         ),
-
                         Container(
                           width: 370,
                           height: 48,
@@ -464,14 +464,14 @@ class _homesState extends State<homes> {
                                 // (!started) ? start() : stop();
                                 // (!started) ? getdatee() : getdate();
                                 // (!started) ? gettimee() : gettime();
-                              }, 
+                              },
                               // child: Text((!started) ? "START" : "STOP",
-                              child: Text("START",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold
-                                ),
+                              child: Text(
+                                "START",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
                               ),
                               style: ElevatedButton.styleFrom(
                                 shadowColor: Colors.black,
@@ -483,79 +483,172 @@ class _homesState extends State<homes> {
                             ),
                           ),
                         ),
-                      ],                                
-                    ),                
-                  ],
-                ),
-
-                Stack(
-                  children: [
-                    Container(
-                      width: 220,
-                      height: 40,
-                      margin: EdgeInsets.only(left: 30, top: 30),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          suffixIcon: Image.asset("assets/icons/search.png"),
-                          contentPadding: EdgeInsets.fromLTRB(10, 0, 0, 0),
-                          fillColor: Colors.white,
-                          filled: true,
-                          hintText: ("Search Activity"),
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: lineColor,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)
-                          ),
-                        ),                       
-                      ),
-                    ),
-                    Container(
-                      width: 130,
-                      height: 40,
-                      margin: EdgeInsets.only(left: 260, top: 30),
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: locationButton,
-                        borderRadius: BorderRadius.circular(12)
-                      ),
-                      child: DropdownButton<String>(
-                        value: value,
-                        isExpanded: true,
-                        dropdownColor: locationButton,
-                        underline: SizedBox(),
-                        borderRadius: BorderRadius.circular(12),
-                        icon: Image.asset('assets/icons/down.png'),
-                        items: items.map(menuItem).toList(),
-                        onChanged: (value) => setState(() => this.value = value),
-                        ), 
-                    ),
-                    Column(
-                      children: [
-                        savedItem()
                       ],
                     ),
                   ],
-                ),     
-                
-              ]
-            ),
-          ),   
-        ],
-      )
-    );
-  }
-  DropdownMenuItem<String> menuItem(String item) => DropdownMenuItem(
-    value: item,
-    child: Text(
-      item,
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 14
-      ),
-    ),
-  );
-}
+                ),
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 220,
+                          height: 40,
+                          child: TextField(
+                            onChanged: (text) async {
+                              final database =
+                                  await $FloorAppDatabase.databaseBuilder('app_database.db').build();
+                              final dao = database.activityDao;
+                              activityList = await dao.findActivityByDescription('%$text%');
+                              setState(() {
 
- 
+                              });
+                            },
+                            decoration: InputDecoration(
+                              suffixIcon:
+                                  Image.asset("assets/icons/search.png"),
+                              contentPadding:
+                                  const EdgeInsets.fromLTRB(10, 0, 0, 0),
+                              fillColor: Colors.white,
+                              filled: true,
+                              hintText: ("Search Activity"),
+                              hintStyle: const TextStyle(
+                                fontSize: 14,
+                                color: lineColor,
+                              ),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                        Container(
+                          width: 130,
+                          height: 40,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: locationButton,
+                              borderRadius: BorderRadius.circular(12)),
+                          child: DropdownButton<String>(
+                            value: value,
+                            isExpanded: true,
+                            dropdownColor: locationButton,
+                            underline: SizedBox(),
+                            borderRadius: BorderRadius.circular(12),
+                            icon: Image.asset('assets/icons/down.png'),
+                            items: items.map(menuItem).toList(),
+                            onChanged: (value) =>
+                                setState(() => this.value = value),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+                    Expanded(
+                      child: GroupedListView<dynamic, String>(
+                        elements: activityList,
+                        groupBy: (element) => element.date,
+                        groupSeparatorBuilder: (String groupByValue) =>
+                            Container(
+                          color: const Color(0xFF434B8C),
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  groupByValue,
+                                  style: const TextStyle(
+                                      color: Color(0xFFC4AF87),
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                        itemBuilder: (context, dynamic element) {
+                          NumberFormat f = NumberFormat("00");
+                          ActivityModel act = element as ActivityModel;
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: SwipeActionCell(
+                              ///this key is necessary
+                              key: ObjectKey(element),
+                              trailingActions: <SwipeAction>[
+                                SwipeAction(
+                                  ///this is the same as iOS native
+                                    performsFirstActionWithFullSwipe: true,
+                                    title: "delete",
+                                    onTap: (CompletionHandler handler) async {
+                                      final database =
+                                      await $FloorAppDatabase.databaseBuilder('app_database.db').build();
+                                      final dao = database.activityDao;
+                                      await dao.deleteActivity(act);
+                                      activityList = await dao.findAllActivity();
+                                      setState(() {});
+                                    },
+                                    color: Colors.red),
+                              ],
+                              child: InkWell(
+                              onTap: () async {
+                                await Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => DetailActivity(activity: act)));
+                                _fetchActivity();
+                              },
+                              child: Row(
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${f.format(act.hours)} : ${f.format(act.minutes)} : ${f.format(act.seconds)}',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      Text('${act.startTime} - ${act.endTime} ${act.id}', style: const TextStyle(color: Colors.white),)
+                                    ],
+                                  ),
+                                  Expanded(child: Container(),),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        act.description,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16),
+                                      ),
+                                      Text(act.location, style: const TextStyle(color: Colors.white),)
+                                    ],
+                                  )
+                                ],
+                              ),
+                            )),
+                          );
+                        },
+                        // optional
+                        useStickyGroupSeparators: true, // optional
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
+            ),
+          ],
+        ));
+  }
+
+  DropdownMenuItem<String> menuItem(String item) => DropdownMenuItem(
+        value: item,
+        child: Text(
+          item,
+          style: TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      );
+}
