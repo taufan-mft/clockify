@@ -133,7 +133,7 @@ class _homesState extends State<homes> {
     await dao.insertPerson(activity);
     activityList = await dao.findAllActivity();
     log('tania');
-
+    reset();
     setState(() {});
   }
 
@@ -426,11 +426,13 @@ class _homesState extends State<homes> {
                           margin: EdgeInsets.only(top: 635, left: 30),
                           child: ElevatedButton(
                             onPressed: () {
+                              if (stopped) {
+                                save();
+                              }
                               if (_click) {
                                 _click = false;
                                 stop();
                               }
-                              (!stopped) ? stop() : save();
                             },
                             child: Text(
                               (!stopped) ? "STOP" : "SAVE",
