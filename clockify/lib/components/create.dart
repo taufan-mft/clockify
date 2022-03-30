@@ -1,9 +1,13 @@
 import 'package:clockify/components/homes.dart';
 import 'package:clockify/components/login.dart';
 import 'package:clockify/constants.dart';
+import 'package:clockify/provider/ActivityState.dart';
 import 'package:clockify/screens/SignIn_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
+import 'package:provider/provider.dart';
+
+import '../screens/home_screen.dart';
 
 class create extends StatefulWidget {
   create({Key? key}) : super(key: key);
@@ -16,6 +20,8 @@ class _createState extends State<create> {
   GlobalKey<FormState> formkey = GlobalKey<FormState>();
   GlobalKey<FormState> passkey = GlobalKey<FormState>();
   GlobalKey<FormState> passkeyy = GlobalKey<FormState>();
+  String email = '';
+  String password = '';
 
   var confirmpass;
   bool manuallyclosed = false;
@@ -85,6 +91,9 @@ class _createState extends State<create> {
                         key: formkey,
                         autovalidateMode: AutovalidateMode.always,
                         child: TextFormField(
+                          onChanged: (text) {
+                            email = text;
+                          },
                           style: TextStyle(
                             color: lineColor,
                           ),
@@ -115,6 +124,9 @@ class _createState extends State<create> {
                         key: passkey,
                         autovalidateMode: AutovalidateMode.always,
                         child: TextFormField(
+                          onChanged: (text) {
+                            password = text;
+                          },
                           obscureText: _obscure,
                           style: TextStyle(
                             color: lineColor
@@ -226,21 +238,17 @@ class _createState extends State<create> {
                     Container(
                       width: 330,
                       height: 48,
-                      margin: EdgeInsets.only(top: 820, left: 50),
+                      margin: EdgeInsets.only(top: 620, left: 50),
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (formkey.currentState!.validate() 
                           && passkey.currentState!.validate() 
                           && passkeyy.currentState!.validate()){
-                              openDialog();
-                              print("Validated");
-                              Future.delayed(Duration(seconds: 2), (){
-                                  Navigator.of(context).pop(true);
-                                  Navigator.push(context,
-                                  MaterialPageRoute(builder: (_) => signIn()));
-                              });
-                            //  Navigator.push(context,
-                            //  MaterialPageRoute(builder: (_) => login()));
+                             bool isSuccess = await context.read<ActivityState>().signUp(email, password);
+                             if (isSuccess) {
+                               Navigator.push(context,
+                               MaterialPageRoute(builder: (_) => const home()));
+                             }
                         } else {
                           // Navigator.push(context,
                           // MaterialPageRoute(builder: (_) => create()));

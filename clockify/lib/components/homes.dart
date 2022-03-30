@@ -5,11 +5,14 @@ import 'package:clockify/components/bghome.dart';
 import 'package:clockify/components/savedItem.dart';
 import 'package:clockify/constants.dart';
 import 'package:clockify/models/ActivityModel.dart';
+import 'package:clockify/provider/ActivityJson.dart';
+import 'package:clockify/provider/ActivityState.dart';
 import 'package:clockify/screens/detail_activity.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:flutter_swipe_action_cell/flutter_swipe_action_cell.dart';
 import '../models/database.dart';
@@ -39,13 +42,17 @@ class _homesState extends State<homes> {
   String date = "-";
   String datee = "-";
   String description = '';
+  late DateTime startDate;
+  late DateTime endDate;
+
 
   //time
   String time = "-";
   String timee = "-";
 
   //location
-  String latitudeData = "";
+  double latitude = 0;
+  double longitude = 0;
 
   //dropdown
   final items = ["Latest Date", "Nearby"];
@@ -59,6 +66,7 @@ class _homesState extends State<homes> {
     setState(() {
       started = false;
       getdatee();
+      endDate = DateTime.now();
       gettimee();
     });
   }
@@ -115,26 +123,38 @@ class _homesState extends State<homes> {
 
   //save
   void save() async {
+    // saved = true;
+    // final database =
+    //     await $FloorAppDatabase.databaseBuilder('app_database.db').build();
+    //
+    // final dao = database.activityDao;
+    // final activity = ActivityModel(
+    //     seconds: seconds,
+    //     minutes: minutes,
+    //     hours: hours,
+    //     startTime: time,
+    //     endTime: timee,
+    //     description: description,
+    //     location: latitudeData,
+    //     date: date);
+    //
+    // await dao.insertPerson(activity);
+    // activityList = await dao.findAllActivity();
+    // log('tania');
+    // reset();
+    // setState(() {});
     saved = true;
-    final database =
-        await $FloorAppDatabase.databaseBuilder('app_database.db').build();
-
-    final dao = database.activityDao;
-    final activity = ActivityModel(
-        seconds: seconds,
-        minutes: minutes,
-        hours: hours,
-        startTime: time,
-        endTime: timee,
-        description: description,
-        location: latitudeData,
-        date: date);
-
-    await dao.insertPerson(activity);
-    activityList = await dao.findAllActivity();
-    log('tania');
-    reset();
-    setState(() {});
+    ActivityJson activityJson = ActivityJson(
+      second: seconds,
+      minute: minutes,
+      hour: hours,
+      start: startDate.toIso8601String(),
+      end: endDate.toIso8601String(),
+      longitude: longitude,
+      latitude: latitude,
+      activity: description,
+    );
+    context.read<ActivityState>().sendActivity(activityJson);
   }
 
   //start
@@ -167,6 +187,7 @@ class _homesState extends State<homes> {
       });
     });
     getdate();
+    startDate = DateTime.now();
     gettime();
   }
 
@@ -225,7 +246,8 @@ class _homesState extends State<homes> {
         desiredAccuracy: LocationAccuracy.high);
 
     setState(() {
-      latitudeData = "${position.latitude}";
+      latitude = position.latitude;
+      longitude = position.longitude;
     });
   }
 
@@ -368,7 +390,7 @@ class _homesState extends State<homes> {
                           Container(
                             margin: EdgeInsets.only(top: 17, left: 120),
                             child: Text(
-                              latitudeData,
+                              '${latitude.toString()}, ${longitude.toString()}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white,
@@ -426,7 +448,7 @@ class _homesState extends State<homes> {
                         Container(
                           width: 175,
                           height: 48,
-                          margin: EdgeInsets.only(top: 635, left: 30),
+                          margin: EdgeInsets.only(top: 535, left: 30),
                           child: ElevatedButton(
                             onPressed: () {
                               if (stopped) {
@@ -457,7 +479,7 @@ class _homesState extends State<homes> {
                         Container(
                           width: 370,
                           height: 48,
-                          margin: EdgeInsets.only(left: 30, top: 635),
+                          margin: EdgeInsets.only(left: 30, top: 435),
                           child: Visibility(
                             visible: _isVisible,
                             child: ElevatedButton(
@@ -556,8 +578,8 @@ class _homesState extends State<homes> {
                     ),
                     Expanded(
                       child: GroupedListView<dynamic, String>(
-                        elements: activityList,
-                        groupBy: (element) => element.date,
+                        elements: context.watch<ActivityState>().activitiesList,
+                        groupBy: (element) => element.start.substring(0,10),
                         groupSeparatorBuilder: (String groupByValue) =>
                             Container(
                           color: const Color(0xFF434B8C),
@@ -577,7 +599,7 @@ class _homesState extends State<homes> {
                         ),
                         itemBuilder: (context, dynamic element) {
                           NumberFormat f = NumberFormat("00");
-                          ActivityModel act = element as ActivityModel;
+                          ActivityJson act = element as ActivityJson;
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: SwipeActionCell(
@@ -589,11 +611,8 @@ class _homesState extends State<homes> {
                                     performsFirstActionWithFullSwipe: true,
                                     title: "delete",
                                     onTap: (CompletionHandler handler) async {
-                                      final database =
-                                      await $FloorAppDatabase.databaseBuilder('app_database.db').build();
-                                      final dao = database.activityDao;
-                                      await dao.deleteActivity(act);
-                                      activityList = await dao.findAllActivity();
+                                      context.read<ActivityState>().activitiesList.removeWhere((el) => el.id == element.id);
+                                      context.read<ActivityState>().deleteActivity(element.id!);
                                       setState(() {});
                                     },
                                     color: Colors.red),
@@ -602,7 +621,7 @@ class _homesState extends State<homes> {
                               onTap: () async {
                                 await Navigator.push(context,
                                     MaterialPageRoute(builder: (_) => DetailActivity(activity: act)));
-                                _fetchActivity();
+                                // _fetchActivity();
                               },
                               child: Row(
                                 children: [
@@ -610,13 +629,13 @@ class _homesState extends State<homes> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${f.format(act.hours)} : ${f.format(act.minutes)} : ${f.format(act.seconds)}',
+                                        '${f.format(act.hour)} : ${f.format(act.minute)} : ${f.format(act.second)}',
                                         style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16),
                                       ),
-                                      Text('${act.startTime} - ${act.endTime} ${act.id}', style: const TextStyle(color: Colors.white),)
+                                      Text('${act.start?.substring(0, 10)} - ${act.end?.substring(0, 10)}', style: const TextStyle(color: Colors.white),)
                                     ],
                                   ),
                                   Expanded(child: Container(),),
@@ -624,12 +643,12 @@ class _homesState extends State<homes> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        act.description,
+                                        act.activity!,
                                         style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 16),
                                       ),
-                                      Text(act.location, style: const TextStyle(color: Colors.white),)
+                                      Text(act.latitude.toString(), style: const TextStyle(color: Colors.white),)
                                     ],
                                   )
                                 ],

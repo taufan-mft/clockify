@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
 import 'package:clockify/screens/password_screen.dart';
 
-
 class login extends StatefulWidget {
   login({Key? key}) : super(key: key);
 
@@ -15,6 +14,7 @@ class login extends StatefulWidget {
 
 class _loginState extends State<login> {
   GlobalKey<FormState> formkey = GlobalKey<FormState>();
+  String email = '';
 
   String? validateEmail(String value) {
     if (value.isEmpty) {
@@ -26,7 +26,6 @@ class _loginState extends State<login> {
     } else
       return null;
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -44,40 +43,35 @@ class _loginState extends State<login> {
                   width: 24,
                 ),
               ),
-
               Container(
                 width: 290,
                 margin: EdgeInsets.only(top: 460, left: 12, right: 16),
-                child : Form(
+                child: Form(
                   key: formkey,
                   autovalidateMode: AutovalidateMode.always,
                   child: TextFormField(
+                    onChanged: (text) {
+                      email = text;
+                    },
                     style: TextStyle(
                       color: Colors.white,
                     ),
                     decoration: InputDecoration(
                       labelText: "Email",
-                      labelStyle: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14
-                        ),
-                      enabledBorder : UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Colors.white
-                        ),
+                      labelStyle: TextStyle(color: Colors.white, fontSize: 14),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
                       ),
                     ),
                     validator: MultiValidator([
                       RequiredValidator(errorText: "Required"),
-                      EmailValidator(errorText: "Enter a Valid Email")                  
+                      EmailValidator(errorText: "Enter a Valid Email")
                     ]),
                   ),
                 ),
-              ),   
-          
+              ),
             ],
           ),
-          
           Container(
             width: 328,
             height: 48,
@@ -85,19 +79,23 @@ class _loginState extends State<login> {
             child: ElevatedButton(
               onPressed: () {
                 if (formkey.currentState!.validate()) {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => password()));
-                      print("Validated");
-                    } else {
-                      print("Not Validated");
-                    }
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => password(
+                                email: email,
+                              )));
+                  print("Validated");
+                } else {
+                  print("Not Validated");
+                }
               },
-              child: Text('SIGN IN',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold
-                ),
+              child: Text(
+                'SIGN IN',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 shadowColor: Colors.black,
@@ -113,20 +111,16 @@ class _loginState extends State<login> {
             children: <Widget>[
               GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (
-                              BuildContext context
-                              ) => register()
-                            )
-                        );
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(
+                      builder: (BuildContext context) => register()));
                 },
-                child: Text("Create new account?",
-                style: TextStyle(
-                decoration: TextDecoration.underline,
-                color: Colors.white,
-                fontSize: 18,
-                ),
+                child: Text(
+                  "Create new account?",
+                  style: TextStyle(
+                    decoration: TextDecoration.underline,
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],

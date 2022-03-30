@@ -6,3 +6,5 @@ const buttonColor = Color(0xff45CDDC);
 const lineColor = Color(0xffA7A6C5);
 const textColor = Color(0xffF8D068);
 const locationButton = Color(0xff434B8C);
+
+const loggedInKey = 'loggedIn';

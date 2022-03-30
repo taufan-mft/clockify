@@ -1,13 +1,15 @@
 import 'package:clockify/models/ActivityModel.dart';
+import 'package:clockify/provider/ActivityJson.dart';
+import 'package:clockify/provider/ActivityState.dart';
 import 'package:flutter/material.dart';
 import 'package:clockify/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../models/database.dart';
 
 class DetailActivity extends StatefulWidget {
-  final ActivityModel activity;
-
+  final ActivityJson activity;
   const DetailActivity({Key? key, required this.activity}) : super(key: key);
 
   @override
@@ -19,26 +21,20 @@ class _DetailActivityState extends State<DetailActivity> {
   final TextEditingController _controller = TextEditingController();
 
   _saveData() async {
-    widget.activity.description = _controller.text;
-    final database =
-    await $FloorAppDatabase.databaseBuilder('app_database.db').build();
-    final dao = database.activityDao;
-    await dao.updateActivity(widget.activity);
+    widget.activity.setAct = _controller.text;
+    context.read<ActivityState>().updateActivity(widget.activity);
     Navigator.pop(context);
   }
 
   _deleteData() async {
-    final database =
-    await $FloorAppDatabase.databaseBuilder('app_database.db').build();
-    final dao = database.activityDao;
-    await dao.deleteActivity(widget.activity);
+    context.read<ActivityState>().deleteActivity(widget.activity.id!);
     Navigator.pop(context);
   }
 
   @override
   void initState() {
     super.initState();
-    _controller.text = widget.activity.description;
+    _controller.text = widget.activity.activity!;
   }
 
   @override
@@ -54,11 +50,11 @@ class _DetailActivityState extends State<DetailActivity> {
           const SizedBox(
             height: 12,
           ),
-          Text(widget.activity.date,
+          Text(widget.activity.start?.substring(0,10) ?? '',
               style: const TextStyle(color: textColor, fontSize: 16)),
           Expanded(child: Container(),),
           Text(
-            '${f.format(widget.activity.hours)} : ${f.format(widget.activity.minutes)} : ${f.format(widget.activity.seconds)}',
+            '${f.format(widget.activity.hour)} : ${f.format(widget.activity.minute)} : ${f.format(widget.activity.second)}',
             style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.bold, fontSize: 40),
           ),
@@ -79,7 +75,7 @@ class _DetailActivityState extends State<DetailActivity> {
                     height: 4,
                   ),
                   Text(
-                    widget.activity.startTime,
+                    widget.activity.start?.substring(10,18) ?? '',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -89,7 +85,7 @@ class _DetailActivityState extends State<DetailActivity> {
                     height: 4,
                   ),
                   Text(
-                    widget.activity.date,
+                    widget.activity.start?.substring(0,10) ?? '',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ],
@@ -107,7 +103,7 @@ class _DetailActivityState extends State<DetailActivity> {
                     height: 4,
                   ),
                   Text(
-                    widget.activity.endTime,
+                    widget.activity.end?.substring(10,18) ?? '',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -117,7 +113,7 @@ class _DetailActivityState extends State<DetailActivity> {
                     height: 4,
                   ),
                   Text(
-                    widget.activity.date,
+                    widget.activity.end?.substring(0, 10) ?? '',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ],
@@ -144,7 +140,7 @@ class _DetailActivityState extends State<DetailActivity> {
                   children: [
                     const Icon(Icons.location_pin, size: 28, color: Colors.red),
                     Text(
-                      widget.activity.location,
+                      widget.activity.latitude.toString(),
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     )
                   ],

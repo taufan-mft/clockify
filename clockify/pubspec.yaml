@@ -46,6 +46,8 @@ dependencies:
   floor: ^1.2.0
   grouped_list: ^4.2.0
   flutter_swipe_action_cell: ^2.2.0
+  http: ^0.13.4
+  shared_preferences: ^2.0.13
 
 dev_dependencies:
   flutter_test:

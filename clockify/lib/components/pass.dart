@@ -1,14 +1,19 @@
+import 'dart:developer';
+
 import 'package:clockify/components/background.dart';
 import 'package:clockify/components/homes.dart';
 import 'package:clockify/constants.dart';
+import 'package:clockify/provider/ActivityState.dart';
 import 'package:clockify/screens/SignIn_screen.dart';
 import 'package:clockify/screens/home_screen.dart';
 import 'package:clockify/screens/password_screen.dart';
 import 'package:form_field_validator/form_field_validator.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class pass extends StatefulWidget {
-  pass({Key? key}) : super(key: key);
+  final String email;
+  pass({Key? key, required this.email}) : super(key: key);
 
   @override
   _passState createState() => _passState();
@@ -17,6 +22,7 @@ class pass extends StatefulWidget {
 
 class _passState extends State<pass> {
   GlobalKey<FormState> formkey = GlobalKey<FormState>();
+  String password = '';
 
   String? validatePassword(String value) {
       if (value.isEmpty) {
@@ -83,6 +89,11 @@ class _passState extends State<pass> {
                         autovalidateMode: AutovalidateMode.always,
                         child: TextFormField(
                           obscureText: _obscure,
+                          onChanged: (text) {
+                            setState(() {
+                              password = text;
+                            });
+                          },
                           style: TextStyle(
                             color: lineColor,
                           ),
@@ -132,8 +143,16 @@ class _passState extends State<pass> {
                   height: 48,
                   margin: EdgeInsets.only(top: 32, bottom: 16),
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (formkey.currentState!.validate()) {
+                        log('email: ${widget.email}');
+                        log('pass: $password');
+                        bool correct = await context.read<ActivityState>().login(widget.email, password);
+                        if (!correct) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(content: Text('Akun tidak ditemukan.')));
+                          return;
+                        }
                       Navigator.push(context,
                           MaterialPageRoute(builder: (_) => home()));
                       print("Validated");

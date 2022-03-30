@@ -1,12 +1,17 @@
 import 'package:clockify/constants.dart';
 import 'package:clockify/models/saved.dart';
+import 'package:clockify/provider/ActivityState.dart';
 import 'package:clockify/providers/allSaved.dart';
 import 'package:clockify/screens/SignIn_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+      ChangeNotifierProvider(
+          lazy: false,
+          create: (context) => ActivityState(),
+          child:const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
